@@ -42,6 +42,9 @@
       color: #00ffcc;
       font-weight: bold;
     }
+    #actions {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -79,6 +82,11 @@
   </div>
 
   <div id="result"></div>
+
+  <div id="actions">
+    <button onclick="copierResultat()">Copier le résultat</button>
+    <button onclick="resetChamps()">Reset</button>
+  </div>
 
   <script>
     function normaliserIP(ip) {
@@ -211,6 +219,22 @@
       const func = conversions[label];
       const output = func ? func(input) : "Conversion inconnue.";
       document.getElementById("result").textContent = `${label} : ${output}`;
+    }
+
+    function copierResultat() {
+      const texte = document.getElementById("result").textContent;
+      if (texte) {
+        navigator.clipboard.writeText(texte).then(() => {
+          alert("Résultat copié dans le presse-papiers !");
+        }).catch(() => {
+          alert("Impossible de copier le résultat.");
+        });
+      }
+    }
+
+    function resetChamps() {
+      document.getElementById("input").value = "";
+      document.getElementById("result").textContent = "";
     }
   </script>
 </body>
