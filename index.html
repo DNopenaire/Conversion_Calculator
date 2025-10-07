@@ -1,1 +1,311 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertisseur Adresse IP (Web)</title>
+    <style>
+        /* === MODE SOMBRE / STYLES TKINTER REPRODUITS === */
+        :root {
+            --bg-color: #2e2e2e;
+            --fg-color: #ffffff;
+            --btn-color: #444444;
+            --entry-bg: #3e3e3e;
+            --result-color: #00ffcc;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--fg-color);
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        input {
+            width: 90%;
+            max-width: 400px;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: var(--entry-bg);
+            color: var(--fg-color);
+            border: 1px solid #555;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        #frame_boutons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+            max-width: 500px;
+        }
+
+        button {
+            background-color: var(--btn-color);
+            color: var(--fg-color);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #555555;
+        }
+
+        #resultat {
+            margin-top: 20px;
+            font-size: 18px;
+            color: var(--result-color);
+            min-height: 25px;
+        }
+
+        #action_boutons {
+            margin-top: 20px;
+        }
+        #action_boutons button {
+            width: 180px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Convertisseur Adresse IP</h1>
+    <label for="input" style="font-size: 16px;">Entrez une adresse IP, binaire, hexadécimale ou décimale :</label>
+    <input type="text" id="input" placeholder="Ex: 192.168.0.1 ou 0xC0A80001">
+
+    <div id="frame_boutons">
+        </div>
+    
+    <div id="resultat"></div>
+
+    <div id="action_boutons">
+        <button onclick="resetChamps()">♻️ Reset</button>
+        <button onclick="copierResultat()">📋 Copier le résultat</button>
+    </div>
+
+    <script>
+        // Fonction utilitaire pour afficher le résultat
+        function afficher(titre, texte) {
+            document.getElementById("resultat").innerText = `${titre} : ${texte}`;
+        }
+
+        // Fonction utilitaire pour convertir un long décimal en IP dotted-decimal
+        function decimalToIp(decimal) {
+            let octets = [];
+            for (let i = 3; i >= 0; i--) {
+                // Utilise >>> 0 pour l'opération non signée, essentiel pour les grands nombres JS
+                let octet = (decimal >>> (8 * i)) & 255; 
+                octets.push(octet);
+            }
+            return octets.join(".");
+        }
+        
+        // Fonction de vérification de validité hex (pour réutilisation)
+        function validerHex(hex_adresse) {
+            let hex = hex_adresse.trim().replace(/0x/gi, "");
+            if (hex.length !== 8 || !/^[0-9A-Fa-f]{8}$/.test(hex)) {
+                return "Erreur : L'adresse hexadécimale doit contenir 8 caractères.";
+            }
+            return hex;
+        }
+
+        // === CONVERSIONS ===
+
+        function ip_vers_binaire(ip_adresse) {
+            let octets = ip_adresse.trim().split('.');
+            if (octets.length !== 4) return "Erreur : L'adresse IP doit contenir 4 octets.";
+            try {
+                let octets_int = octets.map(o => {
+                    let n = parseInt(o);
+                    if (isNaN(n) || n < 0 || n > 255) throw "Erreur : Chaque octet doit être entre 0 et 255.";
+                    return n;
+                });
+                return octets_int.map(o => o.toString(2).padStart(8, "0")).join('.');
+            } catch (e) {
+                return typeof e === 'string' ? e : "Erreur : L'adresse IP contient des caractères non numériques.";
+            }
+        }
+
+        function binaire_vers_ip(binaire_adresse) {
+            let octets = binaire_adresse.trim().split('.');
+            if (octets.length !== 4) return "Erreur : L'adresse binaire doit contenir 4 octets.";
+            
+            if (!octets.every(b => b.length === 8 && /^[01]+$/.test(b))) {
+                return "Erreur : Chaque octet binaire doit avoir 8 bits (0 ou 1).";
+            }
+            try {
+                return octets.map(b => parseInt(b, 2)).join('.');
+            } catch {
+                return "Erreur : Format binaire incorrect.";
+            }
+        }
+
+        function ip_vers_hexadecimal(ip_adresse) {
+            let octets = ip_adresse.trim().split('.');
+            if (octets.length !== 4) return "Erreur : IP invalide (doit avoir 4 octets).";
+            try {
+                let hex_parts = octets.map(o => {
+                    let n = parseInt(o);
+                    if (isNaN(n) || n < 0 || n > 255) throw "Erreur";
+                    return n.toString(16).padStart(2, "0");
+                });
+                return "0x" + hex_parts.join("").toUpperCase();
+            } catch {
+                return "Erreur : IP invalide.";
+            }
+        }
+
+        function ip_vers_decimal(ip_adresse) {
+            let octets = ip_adresse.trim().split('.');
+            if (octets.length !== 4) return "Erreur : IP invalide.";
+            try {
+                let total = 0;
+                for (let i = 0; i < 4; i++) {
+                    let n = parseInt(octets[i]);
+                    if (isNaN(n) || n < 0 || n > 255) throw "Erreur";
+                    total += n * Math.pow(256, (3 - i));
+                }
+                return String(total);
+            } catch {
+                return "Erreur : IP invalide.";
+            }
+        }
+        
+        // Conversions Composées (Binaire, Hex, Décimal => X)
+        
+        function binaire_vers_hexadecimal(binaire_adresse) {
+            let ip = binaire_vers_ip(binaire_adresse);
+            return ip.includes("Erreur") ? ip : ip_vers_hexadecimal(ip);
+        }
+
+        function binaire_vers_decimal(binaire_adresse) {
+            let ip = binaire_vers_ip(binaire_adresse);
+            return ip.includes("Erreur") ? ip : ip_vers_decimal(ip);
+        }
+
+        function hexadecimal_vers_ip(hex_adresse) {
+            let hex = validerHex(hex_adresse);
+            if (hex.includes("Erreur")) return hex;
+            try {
+                let octets = [];
+                for (let i = 0; i < 8; i += 2) {
+                    octets.push(parseInt(hex.substring(i, i + 2), 16));
+                }
+                return octets.join('.');
+            } catch {
+                return "Erreur : Format hexadécimal incorrect.";
+            }
+        }
+
+        function hexadecimal_vers_binaire(hex_adresse) {
+            let ip = hexadecimal_vers_ip(hex_adresse);
+            return ip.includes("Erreur") ? ip : ip_vers_binaire(ip);
+        }
+
+        function hexadecimal_vers_decimal(hex_adresse) {
+            let hex = validerHex(hex_adresse);
+            if (hex.includes("Erreur")) return hex;
+            try {
+                // Utilisation de BigInt pour garantir la précision, car 2^32 est la limite de sécurité en JS
+                let decimal = parseInt(hex, 16); 
+                return String(decimal);
+            } catch {
+                return "Erreur : Format hexadécimal incorrect.";
+            }
+        }
+        
+        function decimal_vers_ip(decimal_valeur) {
+            try {
+                let decimal = parseInt(decimal_valeur);
+                // Plage IPv4 : 0 à 4294967295
+                if (isNaN(decimal) || decimal < 0 || decimal > 4294967295) {
+                    return "Erreur : Valeur décimale hors plage.";
+                }
+                return decimalToIp(decimal);
+            } catch {
+                return "Erreur : Entrée non valide.";
+            }
+        }
+
+        function decimal_vers_hexadecimal(decimal_valeur) {
+            let ip = decimal_vers_ip(decimal_valeur);
+            return ip.includes("Erreur") ? ip : ip_vers_hexadecimal(ip);
+        }
+
+        function decimal_vers_binaire(decimal_valeur) {
+            let ip = decimal_vers_ip(decimal_valeur);
+            return ip.includes("Erreur") ? ip : ip_vers_binaire(ip);
+        }
+
+        // === ACTIONS INTERFACE ===
+
+        function copierResultat() {
+            let element = document.getElementById("resultat");
+            let texte = element.innerText.split(":", 1)[-1].trim();
+            
+            if (texte && !texte.includes("Erreur")) {
+                navigator.clipboard.writeText(texte).then(() => {
+                    // Feedback visuel rapide (comme une messagebox)
+                    element.style.color = '#ffcc00';
+                    element.innerText = "Résultat copié dans le presse-papiers !";
+                    setTimeout(() => {
+                        element.style.color = 'var(--result-color)';
+                        element.innerText = `... (Résultat précédent) : ${texte}`; // Réaffichage
+                    }, 1000);
+                }).catch(err => {
+                    alert("Erreur lors de la copie : " + err);
+                });
+            } else {
+                alert("Aucun résultat valide à copier.");
+            }
+        }
+
+        function resetChamps() {
+            document.getElementById("input").value = "";
+            document.getElementById("resultat").innerText = "";
+        }
+
+        // === INITIALISATION DES BOUTONS (basé sur le tableau Python) ===
+        
+        const boutons = [
+            { text: "IP → Binaire", func: (input) => afficher("Binaire", ip_vers_binaire(input)) },
+            { text: "IP → Hexadécimal", func: (input) => afficher("Hexadécimal", ip_vers_hexadecimal(input)) },
+            { text: "IP → Décimal", func: (input) => afficher("Décimal", ip_vers_decimal(input)) },
+            { text: "Binaire → IP", func: (input) => afficher("IP", binaire_vers_ip(input)) },
+            { text: "Binaire → Hexadécimal", func: (input) => afficher("Hexadécimal", binaire_vers_hexadecimal(input)) },
+            { text: "Binaire → Décimal", func: (input) => afficher("Décimal", binaire_vers_decimal(input)) },
+            { text: "Hexadécimal → Binaire", func: (input) => afficher("Binaire", hexadecimal_vers_binaire(input)) },
+            { text: "Hexadécimal → IP", func: (input) => afficher("IP", hexadecimal_vers_ip(input)) },
+            { text: "Hexadécimal → Décimal", func: (input) => afficher("Décimal", hexadecimal_vers_decimal(input)) },
+            { text: "Décimal → IP", func: (input) => afficher("IP", decimal_vers_ip(input)) },
+            { text: "Décimal → Hexadécimal", func: (input) => afficher("Hexadécimal", decimal_vers_hexadecimal(input)) },
+            { text: "Décimal → Binaire", func: (input) => afficher("Binaire", decimal_vers_binaire(input)) }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const frame = document.getElementById('frame_boutons');
+            const inputElement = document.getElementById('input');
+
+            boutons.forEach(item => {
+                const btn = document.createElement('button');
+                btn.innerText = item.text;
+                btn.onclick = () => {
+                    const inputValue = inputElement.value;
+                    item.func(inputValue);
+                };
+                frame.appendChild(btn);
+            });
+        });
+    </script>
+</body>
+</html>
