@@ -24,6 +24,19 @@
       background-color: #444444;
       cursor: pointer;
     }
+    .group {
+      margin: 20px auto;
+      padding: 10px;
+      border: 1px solid #555;
+      border-radius: 6px;
+      width: fit-content;
+      display: inline-block;
+      background-color: #3e3e3e;
+    }
+    .group h3 {
+      margin-bottom: 10px;
+      color: #00ffcc;
+    }
     #result {
       margin-top: 20px;
       color: #00ffcc;
@@ -37,7 +50,34 @@
   <input type="text" id="input" size="40" placeholder="Ex: 192.168.0.1 ou C0A80001">
   <br>
 
-  <div id="buttons"></div>
+  <div class="group">
+    <h3>IP</h3>
+    <button onclick="run('IP → Binaire')">IP → Binaire</button>
+    <button onclick="run('IP → Hexadécimal')">IP → Hexadécimal</button>
+    <button onclick="run('IP → Décimal')">IP → Décimal</button>
+  </div>
+
+  <div class="group">
+    <h3>Binaire</h3>
+    <button onclick="run('Binaire → IP')">Binaire → IP</button>
+    <button onclick="run('Binaire → Hexadécimal')">Binaire → Hexadécimal</button>
+    <button onclick="run('Binaire → Décimal')">Binaire → Décimal</button>
+  </div>
+
+  <div class="group">
+    <h3>Décimal</h3>
+    <button onclick="run('Décimal → IP')">Décimal → IP</button>
+    <button onclick="run('Décimal → Hexadécimal')">Décimal → Hexadécimal</button>
+    <button onclick="run('Décimal → Binaire')">Décimal → Binaire</button>
+  </div>
+
+  <div class="group">
+    <h3>Hexadécimal</h3>
+    <button onclick="run('Hexadécimal → IP')">Hexadécimal → IP</button>
+    <button onclick="run('Hexadécimal → Binaire')">Hexadécimal → Binaire</button>
+    <button onclick="run('Hexadécimal → Décimal')">Hexadécimal → Décimal</button>
+  </div>
+
   <div id="result"></div>
 
   <script>
@@ -104,7 +144,7 @@
 
     function binaireVersDecimal(binaire) {
       binaire = binaire.replace(/\./g, '');
-      if (!/^[01]+$/.test(binaire)) return "Erreur : Binaire invalide.";
+      if (!/^[01]+$/.test(binaire)) return "Erreur : Le nombre binaire contient des caractères non valides.";
       return parseInt(binaire.padStart(32, '0'), 2).toString();
     }
 
@@ -166,16 +206,11 @@
       "Décimal → Binaire": decimalVersBinaire
     };
 
-    const buttonsDiv = document.getElementById("buttons");
-    for (let [label, func] of Object.entries(conversions)) {
-      let btn = document.createElement("button");
-      btn.textContent = label;
-      btn.onclick = () => {
-        let input = document.getElementById("input").value;
-        let output = func(input);
-        document.getElementById("result").textContent = `${label} : ${output}`;
-      };
-      buttonsDiv.appendChild(btn);
+    function run(label) {
+      const input = document.getElementById("input").value;
+      const func = conversions[label];
+      const output = func ? func(input) : "Conversion inconnue.";
+      document.getElementById("result").textContent = `${label} : ${output}`;
     }
   </script>
 </body>
