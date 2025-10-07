@@ -3,16 +3,19 @@ from tkinter import messagebox
 
 # === CONVERSIONS ===
 
-def ip_vers_binaire(ip_adresse):
+def normaliser_ip(ip_adresse):
     octets = ip_adresse.strip().split('.')
-    if len(octets) != 4:
-        return "Erreur : L'adresse IP doit contenir 4 octets."
+    while len(octets) < 4:
+        octets.append('0')
+    return '.'.join(octets[:4])
+
+def ip_vers_binaire(ip_adresse):
+    ip_adresse = normaliser_ip(ip_adresse)
+    octets = ip_adresse.strip().split('.')
     try:
         octets_int = [int(o) for o in octets]
         if not all(0 <= o <= 255 for o in octets_int):
-            return "Erreur : Chaque octet doit être entre 0 et 255." # <--- Plus direct
-        
-        # Si la validation est passée, on convertit
+            return "Erreur : Chaque octet doit être entre 0 et 255."
         binaire_octets = [bin(o)[2:].zfill(8) for o in octets_int]
         return '.'.join(binaire_octets)
     except ValueError:
@@ -22,20 +25,16 @@ def binaire_vers_ip(binaire_adresse):
     octets = binaire_adresse.strip().split('.')
     if len(octets) != 4:
         return "Erreur : L'adresse binaire doit contenir 4 octets."
-    
-    # Valider le format binaire de chaque octet : 8 caractères et uniquement des '0'/'1'
     if not all(len(b) == 8 and all(c in '01' for c in b) for b in octets):
         return "Erreur : Chaque octet binaire doit avoir 8 bits (0 ou 1)."
-        
     try:
-        # Si la validation est passée, on convertit
         ip_octets = [str(int(b, 2)) for b in octets]
         return '.'.join(ip_octets)
     except ValueError:
-        # Théoriquement, cette erreur ne devrait plus se produire si la validation ci-dessus est correcte
         return "Erreur : Format binaire incorrect."
 
 def ip_vers_hexadecimal(ip_adresse):
+    ip_adresse = normaliser_ip(ip_adresse)
     octets = ip_adresse.strip().split('.')
     try:
         hex_parts = [hex(int(o))[2:].zfill(2) for o in octets if 0 <= int(o) <= 255]
@@ -46,6 +45,7 @@ def ip_vers_hexadecimal(ip_adresse):
         return "Erreur : L'adresse IP contient des caractères non numériques."
 
 def ip_vers_decimal(ip_adresse):
+    ip_adresse = normaliser_ip(ip_adresse)
     octets = ip_adresse.strip().split('.')
     try:
         total = sum(int(octets[i]) << (8 * (3 - i)) for i in range(4))
@@ -60,31 +60,28 @@ def binaire_vers_hexadecimal(binaire_adresse):
     return ip_vers_hexadecimal(ip)
 
 def binaire_vers_decimal(binaire_adresse):
-    ip = binaire_vers_ip(binaire_adresse)
-    if "Erreur" in ip:
-        return ip
-    return ip_vers_decimal(ip)
-
-def hexadecimal_vers_binaire(hex_adresse):
+    binaire_adresse = binaire_adresse.strip().replace('.', '')
+    if not set(binaire_adresse).issubset({'0', '1'}):
+        return "Erreur : Le nombre binaire contient des caractères non valides."
     try:
-        hex_adresse = hex_adresse.strip().lower().replace("0x", "")
-        if len(hex_adresse) != 8:
-            return "Erreur : L'adresse hexadécimale doit contenir 8 caractères."
-        octets = [str(int(hex_adresse[i:i+2], 16)) for i in range(0, 8, 2)]
-        ip = '.'.join(octets)
-        return ip_vers_binaire(ip)
+        return str(int(binaire_adresse, 2))
     except ValueError:
-        return "Erreur : Format hexadécimal incorrect."
+        return "Erreur : Conversion impossible."
 
 def hexadecimal_vers_ip(hex_adresse):
     try:
         hex_adresse = hex_adresse.strip().lower().replace("0x", "")
-        if len(hex_adresse) != 8:
-            return "Erreur : L'adresse hexadécimale doit contenir 8 caractères."
+        hex_adresse = hex_adresse.zfill(8)
         octets = [str(int(hex_adresse[i:i+2], 16)) for i in range(0, 8, 2)]
         return '.'.join(octets)
     except ValueError:
         return "Erreur : Format hexadécimal incorrect."
+
+def hexadecimal_vers_binaire(hex_adresse):
+    ip = hexadecimal_vers_ip(hex_adresse)
+    if "Erreur" in ip:
+        return ip
+    return ip_vers_binaire(ip)
 
 def hexadecimal_vers_decimal(hex_adresse):
     ip = hexadecimal_vers_ip(hex_adresse)
@@ -158,7 +155,7 @@ frame_boutons.pack(pady=10)
 # === BOUTONS ===
 
 boutons = [
-    ("IP → Binaire", lambda: afficher_resultat("Binaire", ip_vers_binaire(entree_ip.get()))),    
+    ("IP → Binaire", lambda: afficher_resultat("Binaire", ip_vers_binaire(entree_ip.get()))),
     ("IP → Hexadécimal", lambda: afficher_resultat("Hexadécimal", ip_vers_hexadecimal(entree_ip.get()))),
     ("IP → Décimal", lambda: afficher_resultat("Décimal", ip_vers_decimal(entree_ip.get()))),
     ("Binaire → IP", lambda: afficher_resultat("IP", binaire_vers_ip(entree_ip.get()))),
@@ -184,6 +181,7 @@ btn_copier.pack(pady=5)
 
 btn_reset = tk.Button(fenetre, text="Reset", command=reset_champs, bg=btn_color, fg=fg_color, width=20)
 btn_reset.pack(pady=5)
+
 
 # === LANCEMENT ===
 fenetre.mainloop()
