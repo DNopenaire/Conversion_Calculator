@@ -38,7 +38,6 @@
   <br>
 
   <div id="buttons"></div>
-
   <div id="result"></div>
 
   <script>
@@ -64,13 +63,13 @@
     }
 
     function binaireVersIP(binaire) {
-      let octets = binaire.trim().split('.');
-      if (octets.length !== 4) return "Erreur : 4 octets requis.";
+      binaire = binaire.replace(/\./g, '').padStart(32, '0');
+      let octets = [];
+      for (let i = 0; i < 32; i += 8) {
+        octets.push(binaire.slice(i, i + 8));
+      }
       try {
-        let ip = octets.map(b => {
-          if (b.length !== 8 || !/^[01]+$/.test(b)) throw "Erreur";
-          return parseInt(b, 2);
-        });
+        let ip = octets.map(b => parseInt(b, 2));
         return ip.join('.');
       } catch {
         return "Erreur : Format binaire incorrect.";
@@ -106,7 +105,7 @@
     function binaireVersDecimal(binaire) {
       binaire = binaire.replace(/\./g, '');
       if (!/^[01]+$/.test(binaire)) return "Erreur : Binaire invalide.";
-      return parseInt(binaire, 2).toString();
+      return parseInt(binaire.padStart(32, '0'), 2).toString();
     }
 
     function hexVersIP(hex) {
@@ -118,7 +117,7 @@
         }
         return ip.join('.');
       } catch {
-        return "Erreur : Hexadécimal invalide.";
+        return "Erreur : Format hexadécimal incorrect.";
       }
     }
 
@@ -138,7 +137,7 @@
         if (n < 0 || n > 4294967295) throw "Erreur";
         return [3,2,1,0].map(i => (n >> (8*i)) & 255).join('.');
       } catch {
-        return "Erreur : Décimal invalide.";
+        return "Erreur : Valeur décimale hors plage.";
       }
     }
 
@@ -159,8 +158,8 @@
       "Binaire → IP": binaireVersIP,
       "Binaire → Hexadécimal": binaireVersHex,
       "Binaire → Décimal": binaireVersDecimal,
-      "Hexadécimal → IP": hexVersIP,
       "Hexadécimal → Binaire": hexVersBinaire,
+      "Hexadécimal → IP": hexVersIP,
       "Hexadécimal → Décimal": hexVersDecimal,
       "Décimal → IP": decimalVersIP,
       "Décimal → Hexadécimal": decimalVersHex,
